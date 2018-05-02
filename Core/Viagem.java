@@ -122,7 +122,7 @@ class viagem extends Thread{
       
     //Verificar Sentido e Calcular Percurso 
     int i = cidadeOrigem;
-    for (int x=i; x<=(i+percurso) ;x++){
+    for (int x=i; x<=(i + this.percurso) ;x++){
         if(isDist(x)){
             System.out.println(getCidade(x, sentidoSul));
         }
