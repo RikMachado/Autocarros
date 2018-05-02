@@ -4,50 +4,12 @@ import java.io.*;
 import pp.PP.*;
 
 class invalidOption extends Exception{
-    public invalidOption(int type){
-        System.out.println("The option " + type + " is invalid in the current context");
-    }
+    
 }
 
 class systemIOException extends Exception{
-    
-    private int errType;
-    
-    // Parameterless Constructor
-    public systemIOException() {}
-
-    // Constructor that accepts a message
-    public systemIOException(String message){
-        this.errType = 0;
-        System.out.println("An error ocurred: ");
-    }
-    
-    public systemIOException(String message, int type)  throws invalidOption{
-        
-        this.errType = type;
-        System.out.println("An error ocurred: ");
-        System.out.println(getTypeName(type));
-        
-    }
-    
-    private String getTypeName(int type) throws invalidOption{
-        String error;
-        switch(type){
-            case 0:
-                error = "File doesn't exist";
-                return error;
-            
-            case 1:
-                error = "File is a directory";
-                return error;
-                
-            case 2:
-                error = "Unknown IO Exception... SHIT IF FUCKED NOW";
-                return error;
-                
-            default:
-                throw new invalidOption(type);
-        }
+    public systemIOException(String msg){
+        super(msg);
     }
 }
 
@@ -71,13 +33,13 @@ class Parser{
                 System.out.println("Session config file located. Config can now be loaded to main program");
             }
             else if (isDirectory(sessionConfig)){
-                throw new systemIOException("", 1);
+                throw new systemIOException("The config file seems to be a Directory.");
             }
             else if (!fileExists(sessionConfig)){
-                throw new systemIOException("", 0);
+                throw new systemIOException("The config file was not found.");
             }
             else{
-                throw new systemIOException("", 2);
+                throw new systemIOException("Unknown IO Exception.");
             }
         }
         catch(Exception e){
