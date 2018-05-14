@@ -1,0 +1,55 @@
+package autocarro;
+import java.util.*;
+import autocarro.Viagem.*;
+
+
+public class Avaria extends Thread{
+    
+    int maxNum; //num que determina se ta avariado ou nao
+    int percentFalha;
+    int minFalha = 0;
+    int maxFalha;
+    Random rand = new Random();
+    
+    public Avaria(int maxNum, int percentFalha){
+        
+        this.maxNum = maxNum;        
+        this.percentFalha = percentFalha;
+        this.maxFalha = calcFalha();
+           
+    }
+    
+    private int calcFalha(){
+        
+        return this.maxNum * (this.percentFalha / 100);
+    } 
+    
+    private int randomizer(int num){
+        
+        return rand.nextInt(num); 
+    }
+         
+    public void run(ArrayList<Viagem> listaViagem){
+        
+        while(true){
+            
+            if(randomizer(maxNum) < maxFalha){
+                
+                int index = randomizer(listaViagem.size());
+                
+                if( listaViagem.get(index).getAvaria() != true ){
+                    
+                    listaViagem.get(index).setAvaria(true);
+                }
+                
+            } 
+            try{
+            Thread.sleep(50);    
+            }
+            catch(InterruptedException iE)
+            {
+                iE.printStackTrace();
+            }
+        }
+    }    
+}
