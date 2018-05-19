@@ -1,0 +1,2 @@
+- Criado class e sistema de Logging;
+- Viagens.java -> Codigo limpo, javadocs criado, code folds adicionado, Logging implementado;
