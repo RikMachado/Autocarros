@@ -1,5 +1,10 @@
 package Syst;
 
+/**
+*@author Dymsi
+*@version 1.00
+**/
+
 public class Viagens extends Thread {
 
     // <editor-fold defaultstate="collapsed" desc="Variaveis.">
@@ -257,11 +262,20 @@ public class Viagens extends Thread {
     }
     // </editor-fold>
 
+    
+    // <editor-fold defaultstate="collapsed" desc="getProxCidade.">    
+    /**
+     *
+     * getProxCidade.
+     * <br />
+     * Utilizado para dar return da proxima cidade na cidade;
+     *
+     * @return int - numero identificador da cidade
+     * @since version 1.00
+     */
     public int getProxCidade() {
-
         int currCoords = getCoords();
         int[] distancias = {0, 20, 50, 75, 100};
-
         for (int i = 0; i < distancias.length; i++) {
             if (currCoords <= distancias[i]) {
                 return distancias[i];
@@ -269,92 +283,115 @@ public class Viagens extends Thread {
         }
         return currCoords;
     }
+    // </editor-fold>
 
+    
+    // <editor-fold defaultstate="collapsed" desc="getCoords.">    
+    /**
+     *
+     * getCoords.
+     * <br />
+     * Utilizado para dar return das coordenadas actuais do veiculo;
+     *
+     * @return int - coordenadas actuais
+     * @since version 1.00
+     */
     public int getCoords() {
         return this.posCoords;
     }
+    // </editor-fold>
 
+    
+    // <editor-fold defaultstate="collapsed" desc="getAutocarro.">    
+    /**
+     *
+     * getAutocarro.
+     * <br />
+     * Utilizado para se obter o ID do autocarro associado ao objecto;
+     *
+     * @return String - id do autocarro
+     * @since version 1.00
+     */
     public String getAutocarro() {
         return this.autocarro.getID();
     }
+    // </editor-fold>
 
+    // <editor-fold defaultstate="collapsed" desc="Get Coordenadas para desenhar na imagem.">    
+    /**
+     *
+     * Get Coordenadas para desenhar na imagem.
+     * <br />
+     * É utilizado o int com a posição atual (entre 0 - 100) e comparado com
+     * um array de valores para se obter as coordenadas apropriadas para fazer
+     * o display da posição no ecra
+     *
+     * @return Int[] - coordenadas para display
+     * @since version 1.00
+     */
     public int[] getPosicao() {
-        //System.out.println("AQUI 11");
-        int x1, x2, x3;
         int nossaPos = getCoords();
         nossaPos = nossaPos % 25;
         int proxCidade = getProxCidade();
         int[] x = new int[5];
         int k = 1;
         int valorCidade = 0;
-
+        
+        //Coordenadas da imagem
         String[][] coordsCidades = {{"110,280", "155,280", "190,280", "190,280", "190,280"}, {"110,280", "120,250", "130,210", "190,280", "190,280"}, {"130,160", "130,140", "130,120", "190,280", "190,280"}, {"130,160", "130,140", "130,120", "190,280", "190,280"}};
         int[] local = {0, 25, 50, 75, 100};
-
-        //System.out.println("AQUI 9");       
+               
         for (int i = 5; i <= 20; i += 5) {
-
-            x[k] = 25 - i;
-
             k++;
         }
 
         x[0] = 25;
-
         x = invertArray(x);
-
-        /*System.out.println("AQUI 4");
-        System.out.println("X-1 " + (x.length-1));*/
+        
         //Criar IF code block para verificar. Todo o codigo a seguir so executa
         //se <emViagem> se encontrar cm o valor true;
         //else dar return de coordenadas que nao se encontrem a vista no ecra;
         for (int i = 1; i < x.length; i++) {
-            /*System.out.println("VALOR I "+i);
-            System.out.println("NOSSA POSICAO "+nossaPos);
-            System.out.println("X["+i+"] "+x[i]);
-            System.out.println("Coords array size: " + coordsCidades.length);*/
             if (nossaPos <= x[i]) {
-                /*System.out.println("AQUI 7");
-                System.out.println("VALOR I "+i);
-                System.out.println("PROX CIDADE "+proxCidade);*/
-
                 for (int f = 0; f < local.length; f++) {
                     if (local[f] == proxCidade) {
                         valorCidade = f;
                     }
                 }
-                //System.out.println("VALOR CIDADE "+valorCidade);
+                
                 String[] coords = coordsCidades[valorCidade][i].split(",");
                 int[] intCoords = new int[2];
-                //System.out.println("AQUI 8");
                 intCoords[0] = Integer.parseInt(coords[0]);
-                //System.out.println("AQUI 9");
                 intCoords[1] = Integer.parseInt(coords[1]);
-                //System.out.println("AQUI 10");
-
                 return intCoords;
             }
-
         }
-        //System.out.println("AQUI 5");   
-
+        
+        log.print("Nao foi encontrada uma combinação de coordenadas possiveis. > Viagens.getDistancia", 1);
         int[] shitFailed = new int[]{999, 999};
         return shitFailed;
     }
-
+    // </editor-fold>
+    
+    
+    // <editor-fold defaultstate="collapsed" desc="Thread Run.">    
+    /**
+     *
+     * Thread Run.
+     * <br />
+     * Loop principal do objecto, onde é feita a iteração por todos os valores
+     * entre cada cidade;
+     *
+     * @since version 1.00
+     */
     public void run() {
-
         //Verificar Sentido e Calcular Percurso 
         int i = cidadeOrigem;
-
         for (int x = i; x <= (i + this.percurso); x++) {
             this.posCoords = x;
-            System.out.println(this.posCoords);
-
             if (this.getAvaria() == true) {
-
                 try {
-                    System.out.println("TOU PARADO");
+                    log.print("Autocarro " + getAutocarro() + " parado por avaria.");
                     Thread.sleep(12000);
                 } catch (InterruptedException iE) {
                     iE.printStackTrace();
@@ -366,28 +403,24 @@ public class Viagens extends Thread {
                 this.setEmViagem(true);
             }
 
-            if (isDist(x)) {
-                System.out.println(getCidade(x, sentidoSul));
-            }
-
             try {
                 Thread.sleep(500);
-            } catch (Exception e) {
+            } catch (Exception e){
+                e.printStackTrace();
             }
 
             if (isDist(x)) {
-
+                log.print("Autocarro " + getAutocarro() + " chegou a " + getCidade(x, sentidoSul) + ".");
                 this.emViagem = false;
                 try {
                     Thread.sleep(10000);
                 } catch (Exception e) {
+                    e.printStackTrace();
                 }
                 this.emViagem = true;
             }
-
         }
-
         this.emViagem = false;
     }
-    //Avaria
 }
+// </editor-fold>
