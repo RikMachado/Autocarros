@@ -1,12 +1,19 @@
 package Syst;
 import java.util.*;
 
+/**
+*@author Dymsi
+*@version 1.00
+**/
+
 public class Logger {
     
+    // <editor-fold defaultstate="collapsed" desc="Variaveis.">
     private String caller;
     private static final String[] warningLevel = {"Info", "Warning", "Error", "Exception", "Debugging"};
+    // </editor-fold>
     
-    
+    // <editor-fold defaultstate="collapsed" desc="Constructor.">
     /**
      *
      * Logger constructor.
@@ -21,9 +28,9 @@ public class Logger {
     public Logger(String caller){
         this.caller = caller;
     }
+    // </editor-fold>
     
-    
-    
+    // <editor-fold defaultstate="collapsed" desc="getCurrentTime.">
     /**
      *
      * Get the current time of the day.
@@ -45,9 +52,9 @@ public class Logger {
         
         return retString;
         }
+    // </editor-fold>
     
-    
-    
+    // <editor-fold defaultstate="collapsed" desc="getCaller.">
     /**
      *
      * Get the caller of the print.
@@ -62,9 +69,9 @@ public class Logger {
     private String getCaller(){
         return this.caller;
     }
+    // </editor-fold>
     
-    
-    
+    // <editor-fold defaultstate="collapsed" desc="getLevel.">
     /**
      *
      * Get the Warning level associated with an int.
@@ -86,10 +93,10 @@ public class Logger {
         
         return "[Unknown warning level]";
     }
+    // </editor-fold>
     
     
-    
-    
+    // <editor-fold defaultstate="collapsed" desc="print methods.">
     /**
      *
      * Printing method constructor.
@@ -128,5 +135,5 @@ public class Logger {
         String printLine = getCurrentTime() + getCaller() + getLevel(level) + " " + msg;
         System.out.println(printLine);
     }
-    
+    // </editor-fold>
 }
