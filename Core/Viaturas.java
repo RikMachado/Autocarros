@@ -94,18 +94,19 @@ class Convencional extends Viaturas {
     public Convencional(int ID, int pessoasInicial) {
         
         this.ID = ID;
-
-        try {
-            this.pessoasInicial = pessoasInicial;
-            excPessMax(this.num_max_pessoas, this.pessoasInicial);
-        } catch (testarPessoas tP) {
-            tP.printStackTrace();
-        }
-
         this.num_max_pessoas = 51;
         this.tipoViatura = "Convencional";
         this.velocidade = 80;
         this.velocidadeDouble = this.velocidade;
+        
+        
+        try {
+            this.pessoasInicial = pessoasInicial;
+            excPessMax(this.pessoasInicial,this.num_max_pessoas);
+        } catch (testarPessoas tP) {
+            tP.printStackTrace();
+        }
+
     }
 
 }
@@ -115,18 +116,18 @@ class MiniBus extends Viaturas {
     public MiniBus(int ID, int pessoasInicial) {
         
         this.ID = ID;
-
-        try {
-            this.pessoasInicial = pessoasInicial;
-            excPessMax(this.num_max_pessoas, this.pessoasInicial);
-        } catch (testarPessoas tP) {
-            tP.printStackTrace();
-        }
-
         this.num_max_pessoas = 24;
         this.tipoViatura = "MiniBus";
         this.velocidade = 120;
         this.velocidadeDouble = this.velocidade;
+
+        try {
+            this.pessoasInicial = pessoasInicial;
+            excPessMax(this.pessoasInicial,this.num_max_pessoas);
+        } catch (testarPessoas tP) {
+            tP.printStackTrace();
+        }
+
     }
 
 }
@@ -136,17 +137,18 @@ class LongDrive extends Viaturas {
     public LongDrive(int ID, int pessoasInicial) {
         
         this.ID = ID;
-
-        try {
-            this.pessoasInicial = pessoasInicial;
-            excPessMax(this.num_max_pessoas, this.pessoasInicial);
-        } catch (testarPessoas tP) {
-            tP.printStackTrace();
-        }
         this.num_max_pessoas = 59;
         this.tipoViatura = "LongDrive";
         this.velocidade = 50;
         this.velocidadeDouble = this.velocidade;
+        
+        
+        try {
+            this.pessoasInicial = pessoasInicial;
+            excPessMax(this.pessoasInicial,this.num_max_pessoas);
+        } catch (testarPessoas tP) {
+            tP.printStackTrace();
+        }
     }
 }
 
@@ -155,18 +157,19 @@ class Expresso extends Viaturas {
     public Expresso(int ID, int pessoasInicial) {
         
         this.ID = ID;
-        
-        try {
-            this.pessoasInicial = pessoasInicial;
-            excPessMax(this.num_max_pessoas, this.pessoasInicial);
-        } catch (testarPessoas tP) {
-            tP.printStackTrace();
-        }
-        
         this.num_max_pessoas = 69;
         this.tipoViatura = "Expresso";
         this.velocidade = 100;
         this.velocidadeDouble = this.velocidade;
+        
+               
+        try {
+            this.pessoasInicial = pessoasInicial;
+            excPessMax(this.pessoasInicial,this.num_max_pessoas);
+        } catch (testarPessoas tP) {
+            tP.printStackTrace();
+        }
+        
     }
 
 }
