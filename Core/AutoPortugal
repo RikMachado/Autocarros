@@ -1,0 +1,1362 @@
+package projeto.pp;
+import javax.swing.table.*;
+import javax.swing.*;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.SwingUtilities;
+import javax.imageio.*;
+import java.io.*;
+import java.awt.image.BufferedImage;
+import java.util.HashSet;
+import java.util.*;
+import projeto.pp.Viagens.*;
+import projeto.pp.Viaturas.*;
+import java.util.Timer;
+import projeto.pp.Avaria.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+
+public class GUI1_beta extends javax.swing.JFrame {
+  
+    
+        Timer timer;
+        Timer timerAvaria;
+        int seconds = 10000;
+        long delay = 2000;
+        
+        private ArrayList<Viagens> listagemViagens = new ArrayList<Viagens>();
+        private ArrayList<Thread> listagemThreads = new ArrayList<Thread>();
+        private ArrayList<Viaturas> listagemAutocarros = new ArrayList<Viaturas>();
+        private ArrayList<Motorista> listagemMotoristas = new ArrayList<Motorista>();
+        private boolean comboBoxMapaInit = false;
+        Avaria avaria;
+        Logger log = new Logger("GUI.java");
+       
+        
+        
+    public GUI1_beta() {
+        Path currentRelativePath = Paths.get("");
+        String s = currentRelativePath.toAbsolutePath().toString();
+        log.print("Current relative path is: " + s, 5);
+        log.print("Complete path for autocarros: " + s + "\\configs\\autocarros.csv", 5);
+        log.print("A iniciar GUI e seus componentes.", 5);
+        initComponents();
+        Refresh.setVisible(false);
+
+        log.print("A carregar lista de motoristas.", 5);
+        //Load de motoristas
+        List<String> tempListMotoristas = loadFile(s + "\\configs\\motoristas.csv");
+        for (int i = 0; i < tempListMotoristas.size(); i++) {
+            String[] params = tempListMotoristas.get(i).split(";");
+            String nome = params[0];
+
+            listagemMotoristas.add(new Motorista(nome, listagemMotoristas.size()));
+        }
+        
+        log.print("A carregar lista de autocarros.", 5);
+        //Load de autocarros
+        List<String> tempListAutocarros = loadFile(s + "\\configs\\autocarros.csv");
+        for (int i = 0; i < tempListAutocarros.size(); i++) {
+            String[] params = tempListAutocarros.get(i).split(";");
+            int persInt = Integer.parseInt(params[1].replace("\n", "").replace("\r", ""));
+            switch (Integer.parseInt(params[0])) {
+                case 0:
+                    listagemAutocarros.add(new Viaturas(listagemAutocarros.size(), Integer.parseInt(params[1])));
+                    break;
+
+                case 1:
+                    listagemAutocarros.add(new Convencional(listagemAutocarros.size(), persInt));
+                    break;
+
+                case 2:
+                    listagemAutocarros.add(new MiniBus(listagemAutocarros.size(), persInt));
+                    break;
+
+                case 3:
+                    listagemAutocarros.add(new Expresso(listagemAutocarros.size(), persInt));
+                    break;
+
+                case 4:
+                    listagemAutocarros.add(new LongDrive(listagemAutocarros.size(), persInt));
+                    break;
+
+            }
+        }
+
+        log.print("A carregar lista de viagens.", 5);
+        //Load de Viagens
+        List<String> tempListViagens = loadFile(s + "\\configs\\viagens.csv");
+        for (int i = 0; i < tempListViagens.size(); i++) {
+            String[] params = tempListViagens.get(i).split(";");
+            int id = Integer.parseInt(params[0].replace("\n", "").replace("\r", ""));
+            int motID = Integer.parseInt(params[5].replace("\n", "").replace("\r", ""));
+            boolean sentido;
+            if (params[3].equals("true")) {
+                sentido = true;
+            } else {
+                sentido = false;
+            }
+
+            listagemViagens.add(new Viagens(id, params[1], params[2], sentido, listagemViagens.size(), listagemAutocarros.get(Integer.parseInt(params[4])), listagemMotoristas.get(motID)));
+        }
+        
+        log.print("A criar lista de threads a serem executadas.", 5);
+        //Thread Creation
+        for (int i = 0; i < listagemViagens.size(); i++) {
+            listagemThreads.add(new Thread(listagemViagens.get(i)));
+        }
+        
+        log.print("A criar thread de avarias.", 5);
+        avaria = new Avaria(1000, 10, listagemViagens);
+        Thread threadAvaria = new Thread(avaria);
+        
+        log.print("A carregar lista de viagens para combo box.", 5);
+        if (comboBoxMapaInit == false) {
+            for (int i = 0; i < listagemViagens.size(); i++) {
+
+                int addItem = Integer.parseInt(listagemViagens.get(i).getAutocarro());
+                jComboBox5.addItem(Integer.toString(addItem));
+
+            }
+            comboBoxMapaInit = true;
+        }
+
+        MapZoomCasLis.setVisible(false);
+        MapZoomPorBra.setVisible(false);
+        AutocarroCas.setVisible(false);
+        jPanel4.setVisible(false);
+        jButton6.setVisible(false);
+        AutocarroCas.setVisible(false);
+        AutocarroCasLis.setVisible(false);
+        AutocarroLis.setVisible(false);
+        AutocarroLisCoi.setVisible(false);
+        AutocarroCoi.setVisible(false);
+        AutocarroCoiPor.setVisible(false);
+        AutocarroPor.setVisible(false);
+        AutocarroPorBra.setVisible(false);
+        AutocarroBra.setVisible(false);
+
+        log.print("A começar threads.", 5);
+        try {
+
+            for (int i = 0; i < listagemThreads.size(); i++) {
+
+                listagemThreads.get(i).start();
+            }
+            threadAvaria.start();
+
+            Thread.sleep(1000);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        log.print("A criar e começar Timers para atualização de ecra e avarias.", 5);
+        timer = new Timer();
+        timer.schedule(new GUI1_beta.RemindTask(), seconds, delay);
+        timerAvaria = new Timer();
+        timerAvaria.schedule(new GUI1_beta.avariaRefresh(), seconds, delay);
+        
+        
+        log.print("A carregar tabela de viagens.", 5);
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        int numViagens = listagemViagens.size();
+        int currRowCount = jTable1.getRowCount();
+        int lineNumber = 0;
+
+        for (int i = 0; i < listagemViagens.size(); i++) {
+            String[] infoViagem = new String[7];
+            infoViagem[0] = listagemViagens.get(i).getAutocarro();
+            infoViagem[1] = listagemViagens.get(i).getObjAutocarro().getTipoAutocarro();
+            infoViagem[2] = listagemViagens.get(i).getOrigem();
+            infoViagem[3] = listagemViagens.get(i).getDestino();
+            infoViagem[4] = listagemViagens.get(i).getCidade(listagemViagens.get(i).getProxCidade(), listagemViagens.get(i).getSentido());
+            infoViagem[5] = (listagemViagens.get(i).getEstadoAtual());
+            infoViagem[6] = (listagemViagens.get(i).getTempoEstimado());
+
+            if (model.getRowCount() > 0) {
+                for (int q = 0; q < model.getRowCount(); q++) {
+
+                    if (model.getValueAt(q, 0).equals(infoViagem[0])) {
+                        model.removeRow(q);
+                    }
+                }
+            }
+            model.addRow(new Object[]{infoViagem[0], infoViagem[1], infoViagem[2],
+                infoViagem[3], infoViagem[4], infoViagem[5], infoViagem[6]});
+        }
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException iE) {
+            iE.printStackTrace();
+        }
+
+    }
+    
+    public List<String> loadFile(String filePath) {
+        List<String> toLoad = new ArrayList<String>();
+
+        //Load de cada entry para uma lista
+        BufferedReader fis = null;
+        try {
+            int a = 0;
+            int b = 0;
+            File ficheiroInput = new File(filePath);
+            fis = new BufferedReader(new FileReader(ficheiroInput));
+            toLoad.add("");
+            while (a != -1) {
+                a = fis.read();
+                if (a != -1) {
+                    if (a == 10) {
+                        b += 1;
+                        toLoad.add("");
+                    } else {
+                        String temp = String.valueOf((char) a);
+                        //toLoad.add(b,toLoad.get(b).concat(temp));
+                        String temp2 = toLoad.get(b) + temp;
+
+                        toLoad.set(b, temp2);
+                    }
+                }
+            }
+            fis.close();
+            return toLoad;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+    
+    
+    
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        jTabbedPane1 = new javax.swing.JTabbedPane();
+        jPanel1 = new javax.swing.JPanel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
+        Refresh = new javax.swing.JButton();
+        jLabelNomeBus1 = new javax.swing.JLabel();
+        jPanel3 = new javax.swing.JPanel();
+        jPanel4 = new javax.swing.JPanel();
+        jSeparator6 = new javax.swing.JSeparator();
+        jLabelNomeBus3 = new javax.swing.JLabel();
+        jCBMotorista = new javax.swing.JComboBox<>();
+        jLabel15 = new javax.swing.JLabel();
+        jLabelP4MotoristaNovo = new javax.swing.JLabel();
+        jButton5 = new javax.swing.JButton();
+        jButton7 = new javax.swing.JButton();
+        jLabel28 = new javax.swing.JLabel();
+        jLabelP4MotoristaAtual = new javax.swing.JLabel();
+        AutocarroCas = new javax.swing.JLabel();
+        AutocarroCasLis = new javax.swing.JLabel();
+        AutocarroLis = new javax.swing.JLabel();
+        AutocarroLisCoi = new javax.swing.JLabel();
+        MapZoomCasLis = new javax.swing.JLabel();
+        AutocarroCoi = new javax.swing.JLabel();
+        AutocarroCoiPor = new javax.swing.JLabel();
+        AutocarroPor = new javax.swing.JLabel();
+        AutocarroPorBra = new javax.swing.JLabel();
+        AutocarroBra = new javax.swing.JLabel();
+        MapZoomPorBra = new javax.swing.JLabel();
+        Mapa = new javax.swing.JLabel();
+        jButton3 = new javax.swing.JButton();
+        jComboBox5 = new javax.swing.JComboBox<>();
+        jLabel7 = new javax.swing.JLabel();
+        jSeparator7 = new javax.swing.JSeparator();
+        jLabel9 = new javax.swing.JLabel();
+        jLabel10 = new javax.swing.JLabel();
+        jLabel11 = new javax.swing.JLabel();
+        jLabel12 = new javax.swing.JLabel();
+        jLabel13 = new javax.swing.JLabel();
+        jLabel14 = new javax.swing.JLabel();
+        jLabel22 = new javax.swing.JLabel();
+        jLabel16 = new javax.swing.JLabel();
+        jLabelNomeBus = new javax.swing.JLabel();
+        jLabelEstado = new javax.swing.JLabel();
+        jLabelSentido = new javax.swing.JLabel();
+        jLabelOrigem = new javax.swing.JLabel();
+        jLabelDestino = new javax.swing.JLabel();
+        jLabelTempoEsperado = new javax.swing.JLabel();
+        jLabelNrPessoas = new javax.swing.JLabel();
+        jLabelNrTotalPess = new javax.swing.JLabel();
+        jLabelCondicao = new javax.swing.JLabel();
+        jLabelNomeMotorista = new javax.swing.JLabel();
+        jButton4 = new javax.swing.JButton();
+        jLabel21 = new javax.swing.JLabel();
+        jButton6 = new javax.swing.JButton();
+        jSeparator9 = new javax.swing.JSeparator();
+        jPanel2 = new javax.swing.JPanel();
+        jLabelNomeBus2 = new javax.swing.JLabel();
+        jSeparator8 = new javax.swing.JSeparator();
+        jLabel17 = new javax.swing.JLabel();
+        jLabel18 = new javax.swing.JLabel();
+        jLabel20 = new javax.swing.JLabel();
+        jLabel23 = new javax.swing.JLabel();
+        jLabel25 = new javax.swing.JLabel();
+        jLabelESTNrBus = new javax.swing.JLabel();
+        jLabelESTPassagEsp = new javax.swing.JLabel();
+        jLabelDestino1 = new javax.swing.JLabel();
+        jLabelESTLucro = new javax.swing.JLabel();
+        jLabelESTNrLong = new javax.swing.JLabel();
+        jLabelDestino2 = new javax.swing.JLabel();
+        jLabelDestino3 = new javax.swing.JLabel();
+        jLabelDestino4 = new javax.swing.JLabel();
+        jLabelESTPassagT = new javax.swing.JLabel();
+        jLabelESTNrConv = new javax.swing.JLabel();
+        jLabelESTNrMini = new javax.swing.JLabel();
+        jLabelESTNrExpresso = new javax.swing.JLabel();
+        jLabel24 = new javax.swing.JLabel();
+        jLabelESTNrTotalAvarias = new javax.swing.JLabel();
+        jLabel26 = new javax.swing.JLabel();
+        jLabelESTNrMotor = new javax.swing.JLabel();
+        jLabelESTLogo = new javax.swing.JLabel();
+
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setMinimumSize(new java.awt.Dimension(830, 560));
+        setPreferredSize(new java.awt.Dimension(830, 560));
+        setResizable(false);
+        setSize(new java.awt.Dimension(830, 560));
+        addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                formFocusGained(evt);
+            }
+        });
+        getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jTabbedPane1.setBackground(new java.awt.Color(255, 102, 51));
+        jTabbedPane1.setMinimumSize(new java.awt.Dimension(830, 560));
+        jTabbedPane1.setPreferredSize(new java.awt.Dimension(830, 560));
+        jTabbedPane1.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                jTabbedPane1FocusGained(evt);
+            }
+        });
+        jTabbedPane1.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jTabbedPane1MouseClicked(evt);
+            }
+        });
+
+        jPanel1.setBackground(new java.awt.Color(255, 102, 51));
+        jPanel1.setMinimumSize(new java.awt.Dimension(830, 530));
+        jPanel1.setPreferredSize(new java.awt.Dimension(830, 530));
+        jPanel1.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                jPanel1FocusGained(evt);
+            }
+        });
+        jPanel1.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jScrollPane1.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                jScrollPane1FocusGained(evt);
+            }
+        });
+
+        jTable1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "ID", "Tipo Autocarro", "Cidade Origem", "Cidade Destino", "Próxi. Cidade", "Estado", "Tempo Estimado"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jTable1.setGridColor(new java.awt.Color(0, 0, 0));
+        jTable1.setOpaque(false);
+        jTable1.setSelectionBackground(new java.awt.Color(0, 0, 0));
+        jTable1.setSelectionForeground(new java.awt.Color(255, 102, 51));
+        jTable1.getTableHeader().setResizingAllowed(false);
+        jTable1.getTableHeader().setReorderingAllowed(false);
+        jTable1.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                jTable1FocusGained(evt);
+            }
+        });
+        jScrollPane1.setViewportView(jTable1);
+        if (jTable1.getColumnModel().getColumnCount() > 0) {
+            jTable1.getColumnModel().getColumn(0).setResizable(false);
+            jTable1.getColumnModel().getColumn(0).setPreferredWidth(1);
+            jTable1.getColumnModel().getColumn(1).setResizable(false);
+            jTable1.getColumnModel().getColumn(2).setResizable(false);
+            jTable1.getColumnModel().getColumn(3).setResizable(false);
+            jTable1.getColumnModel().getColumn(4).setResizable(false);
+            jTable1.getColumnModel().getColumn(5).setResizable(false);
+            jTable1.getColumnModel().getColumn(6).setResizable(false);
+        }
+
+        jPanel1.add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 70, 748, 400));
+
+        Refresh.setText("Refresh");
+        Refresh.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                RefreshActionPerformed(evt);
+            }
+        });
+        jPanel1.add(Refresh, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 480, 84, 30));
+
+        jLabelNomeBus1.setFont(new java.awt.Font("Tahoma", 1, 36)); // NOI18N
+        jLabelNomeBus1.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabelNomeBus1.setText("CONSULTAR AUTOCARROS");
+        jPanel1.add(jLabelNomeBus1, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 20, 740, 50));
+
+        jTabbedPane1.addTab("Informação", jPanel1);
+
+        jPanel3.setBackground(new java.awt.Color(255, 102, 51));
+        jPanel3.setMinimumSize(new java.awt.Dimension(830, 530));
+        jPanel3.setPreferredSize(new java.awt.Dimension(830, 530));
+        jPanel3.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                jPanel3FocusGained(evt);
+            }
+        });
+        jPanel3.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jPanel4.setBackground(new java.awt.Color(255, 102, 51));
+        jPanel4.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jSeparator6.setForeground(new java.awt.Color(255, 255, 255));
+        jSeparator6.setPreferredSize(new java.awt.Dimension(50, 20));
+        jPanel4.add(jSeparator6, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 60, 280, -1));
+
+        jLabelNomeBus3.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
+        jLabelNomeBus3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelNomeBus3.setText(" ALTERAR MOTORISTA");
+        jPanel4.add(jLabelNomeBus3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 10, 330, 50));
+
+        jCBMotorista.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "-- Selecionar Novo Motorista --" }));
+        jCBMotorista.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jCBMotoristaMouseClicked(evt);
+            }
+        });
+        jCBMotorista.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jCBMotoristaActionPerformed(evt);
+            }
+        });
+        jPanel4.add(jCBMotorista, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 110, 260, -1));
+
+        jLabel15.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel15.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel15.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel15.setText("Motorista Novo");
+        jPanel4.add(jLabel15, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 190, 120, 20));
+
+        jLabelP4MotoristaNovo.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelP4MotoristaNovo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelP4MotoristaNovo.setText("--");
+        jPanel4.add(jLabelP4MotoristaNovo, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 190, 120, 20));
+
+        jButton5.setText("Cancelar");
+        jButton5.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton5ActionPerformed(evt);
+            }
+        });
+        jPanel4.add(jButton5, new org.netbeans.lib.awtextra.AbsoluteConstraints(190, 230, 100, 20));
+
+        jButton7.setText("Confirmar");
+        jButton7.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton7ActionPerformed(evt);
+            }
+        });
+        jPanel4.add(jButton7, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 230, 100, 20));
+
+        jLabel28.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel28.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel28.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel28.setText("Motorista Atual");
+        jPanel4.add(jLabel28, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 160, 120, 20));
+
+        jLabelP4MotoristaAtual.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelP4MotoristaAtual.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelP4MotoristaAtual.setText("--");
+        jPanel4.add(jLabelP4MotoristaAtual, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 160, 120, 20));
+
+        jPanel3.add(jPanel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 170, 330, 270));
+
+        AutocarroCas.setBackground(new java.awt.Color(255, 255, 255));
+        AutocarroCas.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/Bus.png"))); // NOI18N
+        jPanel3.add(AutocarroCas, new org.netbeans.lib.awtextra.AbsoluteConstraints(73, 270, 50, 40));
+
+        AutocarroCasLis.setBackground(new java.awt.Color(255, 255, 255));
+        AutocarroCasLis.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/Bus.png"))); // NOI18N
+        jPanel3.add(AutocarroCasLis, new org.netbeans.lib.awtextra.AbsoluteConstraints(155, 280, 50, 40));
+
+        AutocarroLis.setBackground(new java.awt.Color(255, 255, 255));
+        AutocarroLis.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/Bus.png"))); // NOI18N
+        jPanel3.add(AutocarroLis, new org.netbeans.lib.awtextra.AbsoluteConstraints(236, 260, 50, 40));
+
+        AutocarroLisCoi.setBackground(new java.awt.Color(255, 255, 255));
+        AutocarroLisCoi.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/Bus.png"))); // NOI18N
+        jPanel3.add(AutocarroLisCoi, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 250, 50, 40));
+
+        MapZoomCasLis.setBackground(new java.awt.Color(255, 102, 51));
+        MapZoomCasLis.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/ZOOM_Cas-Lis.png"))); // NOI18N
+        MapZoomCasLis.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        MapZoomCasLis.setOpaque(true);
+        jPanel3.add(MapZoomCasLis, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 120, 320, 280));
+
+        AutocarroCoi.setBackground(new java.awt.Color(255, 255, 255));
+        AutocarroCoi.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/Bus.png"))); // NOI18N
+        jPanel3.add(AutocarroCoi, new org.netbeans.lib.awtextra.AbsoluteConstraints(132, 172, 50, 40));
+
+        AutocarroCoiPor.setBackground(new java.awt.Color(255, 255, 255));
+        AutocarroCoiPor.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/Bus.png"))); // NOI18N
+        jPanel3.add(AutocarroCoiPor, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 140, 50, 40));
+
+        AutocarroPor.setBackground(new java.awt.Color(255, 255, 255));
+        AutocarroPor.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/Bus.png"))); // NOI18N
+        jPanel3.add(AutocarroPor, new org.netbeans.lib.awtextra.AbsoluteConstraints(83, 260, 50, 40));
+
+        AutocarroPorBra.setBackground(new java.awt.Color(255, 255, 255));
+        AutocarroPorBra.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/Bus.png"))); // NOI18N
+        jPanel3.add(AutocarroPorBra, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 230, 50, 40));
+
+        AutocarroBra.setBackground(new java.awt.Color(255, 255, 255));
+        AutocarroBra.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/Bus.png"))); // NOI18N
+        jPanel3.add(AutocarroBra, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 160, 50, 40));
+
+        MapZoomPorBra.setBackground(new java.awt.Color(255, 102, 51));
+        MapZoomPorBra.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/ZOOM_Por-Bra.png"))); // NOI18N
+        MapZoomPorBra.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        MapZoomPorBra.setOpaque(true);
+        jPanel3.add(MapZoomPorBra, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 120, 320, 280));
+
+        Mapa.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/Bus-mini.png"))); // NOI18N
+        jPanel3.add(Mapa, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 0, 250, 540));
+
+        jButton3.setText("Procurar");
+        jButton3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton3ActionPerformed(evt);
+            }
+        });
+        jPanel3.add(jButton3, new org.netbeans.lib.awtextra.AbsoluteConstraints(700, 60, 80, 20));
+
+        jComboBox5.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "-- Seleccionar Autocarro --" }));
+        jComboBox5.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jComboBox5MouseClicked(evt);
+            }
+        });
+        jComboBox5.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jComboBox5ActionPerformed(evt);
+            }
+        });
+        jPanel3.add(jComboBox5, new org.netbeans.lib.awtextra.AbsoluteConstraints(460, 60, 220, 20));
+
+        jLabel7.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel7.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel7.setText("ID Autocarro");
+        jPanel3.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 60, 80, 20));
+
+        jSeparator7.setForeground(new java.awt.Color(255, 255, 255));
+        jSeparator7.setPreferredSize(new java.awt.Dimension(50, 20));
+        jPanel3.add(jSeparator7, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 90, 410, -1));
+
+        jLabel9.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel9.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel9.setText("Cidade de Origem");
+        jPanel3.add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 230, 130, 20));
+
+        jLabel10.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel10.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel10.setText("Estado do Autocarro");
+        jPanel3.add(jLabel10, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 170, 130, 20));
+
+        jLabel11.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel11.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel11.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel11.setText("Nº Total Pessoas");
+        jPanel3.add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 350, 130, 20));
+
+        jLabel12.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel12.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel12.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel12.setText("Cidade de Destino");
+        jPanel3.add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 260, 130, 20));
+
+        jLabel13.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel13.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel13.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel13.setText("Nº Pessoas a viajar");
+        jPanel3.add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 320, 130, 20));
+
+        jLabel14.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel14.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel14.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel14.setText("Sentido");
+        jPanel3.add(jLabel14, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 200, 130, 20));
+
+        jLabel22.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel22.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel22.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel22.setText("Tempo esperado - Viagem");
+        jPanel3.add(jLabel22, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 290, 200, 20));
+
+        jLabel16.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel16.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel16.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel16.setText("Condição do Autocarro");
+        jPanel3.add(jLabel16, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 380, 130, 20));
+
+        jLabelNomeBus.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelNomeBus.setForeground(new java.awt.Color(51, 51, 51));
+        jLabelNomeBus.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelNomeBus.setText("* Atualizar Nome Autocarro Procurado *");
+        jPanel3.add(jLabelNomeBus, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 120, 410, 20));
+
+        jLabelEstado.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelEstado.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelEstado.setText(" ");
+        jPanel3.add(jLabelEstado, new org.netbeans.lib.awtextra.AbsoluteConstraints(590, 170, 150, 20));
+
+        jLabelSentido.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelSentido.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelSentido.setText(" ");
+        jPanel3.add(jLabelSentido, new org.netbeans.lib.awtextra.AbsoluteConstraints(590, 200, 150, 20));
+
+        jLabelOrigem.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelOrigem.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelOrigem.setText(" ");
+        jPanel3.add(jLabelOrigem, new org.netbeans.lib.awtextra.AbsoluteConstraints(590, 230, 150, 20));
+
+        jLabelDestino.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelDestino.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelDestino.setText(" ");
+        jPanel3.add(jLabelDestino, new org.netbeans.lib.awtextra.AbsoluteConstraints(590, 260, 150, 20));
+
+        jLabelTempoEsperado.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelTempoEsperado.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelTempoEsperado.setText(" ");
+        jPanel3.add(jLabelTempoEsperado, new org.netbeans.lib.awtextra.AbsoluteConstraints(590, 290, 150, 20));
+
+        jLabelNrPessoas.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelNrPessoas.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelNrPessoas.setText(" ");
+        jPanel3.add(jLabelNrPessoas, new org.netbeans.lib.awtextra.AbsoluteConstraints(590, 320, 150, 20));
+
+        jLabelNrTotalPess.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelNrTotalPess.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelNrTotalPess.setText(" ");
+        jPanel3.add(jLabelNrTotalPess, new org.netbeans.lib.awtextra.AbsoluteConstraints(590, 350, 150, 20));
+
+        jLabelCondicao.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelCondicao.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelCondicao.setText(" ");
+        jPanel3.add(jLabelCondicao, new org.netbeans.lib.awtextra.AbsoluteConstraints(590, 380, 150, 20));
+
+        jLabelNomeMotorista.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelNomeMotorista.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelNomeMotorista.setText(" ");
+        jPanel3.add(jLabelNomeMotorista, new org.netbeans.lib.awtextra.AbsoluteConstraints(590, 410, 150, 20));
+
+        jButton4.setText("Parar Viagem");
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton4ActionPerformed(evt);
+            }
+        });
+        jPanel3.add(jButton4, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 440, 130, 20));
+
+        jLabel21.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel21.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel21.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel21.setText("Nome do Motorista");
+        jPanel3.add(jLabel21, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 410, 130, 20));
+
+        jButton6.setText("Alterar Motorista");
+        jButton6.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton6ActionPerformed(evt);
+            }
+        });
+        jPanel3.add(jButton6, new org.netbeans.lib.awtextra.AbsoluteConstraints(600, 440, 130, 20));
+
+        jSeparator9.setForeground(new java.awt.Color(255, 255, 255));
+        jSeparator9.setPreferredSize(new java.awt.Dimension(50, 20));
+        jPanel3.add(jSeparator9, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 150, 330, -1));
+
+        jTabbedPane1.addTab("Viagens", jPanel3);
+
+        jPanel2.setBackground(new java.awt.Color(255, 102, 51));
+        jPanel2.setMinimumSize(new java.awt.Dimension(830, 530));
+        jPanel2.setPreferredSize(new java.awt.Dimension(830, 530));
+        jPanel2.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                jPanel2FocusGained(evt);
+            }
+        });
+        jPanel2.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                jPanel2MouseEntered(evt);
+            }
+        });
+        jPanel2.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jLabelNomeBus2.setFont(new java.awt.Font("Tahoma", 1, 36)); // NOI18N
+        jLabelNomeBus2.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabelNomeBus2.setText("CONSULTAR ESTATÍSTICAS");
+        jPanel2.add(jLabelNomeBus2, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 20, 740, 50));
+
+        jSeparator8.setForeground(new java.awt.Color(255, 255, 255));
+        jSeparator8.setPreferredSize(new java.awt.Dimension(50, 20));
+        jPanel2.add(jSeparator8, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 70, 740, -1));
+
+        jLabel17.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel17.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel17.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel17.setText("Lucro do Dia");
+        jPanel2.add(jLabel17, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 360, 130, 20));
+
+        jLabel18.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel18.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel18.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel18.setText("Números de Autocarros");
+        jPanel2.add(jLabel18, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 100, 130, 20));
+
+        jLabel20.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel20.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel20.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel20.setText("Número p/ Tipo Autocarro");
+        jPanel2.add(jLabel20, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 140, 170, 20));
+
+        jLabel23.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel23.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel23.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel23.setText("Passageiros Transportados no dia");
+        jPanel2.add(jLabel23, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 280, 200, 20));
+
+        jLabel25.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel25.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel25.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel25.setText("Passageiros Esperados no dia");
+        jPanel2.add(jLabel25, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 320, 180, 20));
+
+        jLabelESTNrBus.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelESTNrBus.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelESTNrBus.setText("-- Número --");
+        jPanel2.add(jLabelESTNrBus, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 100, 150, 20));
+
+        jLabelESTPassagEsp.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelESTPassagEsp.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelESTPassagEsp.setText("-- Número --");
+        jPanel2.add(jLabelESTPassagEsp, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 320, 150, 20));
+
+        jLabelDestino1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelDestino1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelDestino1.setText("Long Drive");
+        jPanel2.add(jLabelDestino1, new org.netbeans.lib.awtextra.AbsoluteConstraints(670, 140, 150, 20));
+
+        jLabelESTLucro.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelESTLucro.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelESTLucro.setText("-- Tempo --");
+        jPanel2.add(jLabelESTLucro, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 360, 150, 20));
+
+        jLabelESTNrLong.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelESTNrLong.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelESTNrLong.setText("-- Número --");
+        jPanel2.add(jLabelESTNrLong, new org.netbeans.lib.awtextra.AbsoluteConstraints(670, 160, 150, 20));
+
+        jLabelDestino2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelDestino2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelDestino2.setText("Convencional");
+        jPanel2.add(jLabelDestino2, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 140, 150, 20));
+
+        jLabelDestino3.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelDestino3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelDestino3.setText("Mini - Bus");
+        jPanel2.add(jLabelDestino3, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 140, 150, 20));
+
+        jLabelDestino4.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelDestino4.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelDestino4.setText("Expresso");
+        jPanel2.add(jLabelDestino4, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 140, 150, 20));
+
+        jLabelESTPassagT.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelESTPassagT.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelESTPassagT.setText("-- Número --");
+        jPanel2.add(jLabelESTPassagT, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 280, 150, 20));
+
+        jLabelESTNrConv.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelESTNrConv.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelESTNrConv.setText("-- Número --");
+        jPanel2.add(jLabelESTNrConv, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 160, 150, 20));
+
+        jLabelESTNrMini.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelESTNrMini.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelESTNrMini.setText("-- Número --");
+        jPanel2.add(jLabelESTNrMini, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 160, 150, 20));
+
+        jLabelESTNrExpresso.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelESTNrExpresso.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelESTNrExpresso.setText("-- Número --");
+        jPanel2.add(jLabelESTNrExpresso, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 160, 150, 20));
+
+        jLabel24.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel24.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel24.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel24.setText("Número Total de Avarias");
+        jPanel2.add(jLabel24, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 200, 160, 20));
+
+        jLabelESTNrTotalAvarias.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelESTNrTotalAvarias.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelESTNrTotalAvarias.setText("-- Número --");
+        jPanel2.add(jLabelESTNrTotalAvarias, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 200, 150, 20));
+
+        jLabel26.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel26.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel26.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel26.setText("Motoristas que deram entrada");
+        jPanel2.add(jLabel26, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 240, 180, 20));
+
+        jLabelESTNrMotor.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelESTNrMotor.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelESTNrMotor.setText("-- Número --");
+        jPanel2.add(jLabelESTNrMotor, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 240, 150, 20));
+
+        jLabelESTLogo.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabelESTLogo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelESTLogo.setIcon(new javax.swing.ImageIcon(getClass().getResource("/projeto/pp/Images/logoAP.png"))); // NOI18N
+        jLabelESTLogo.setText(" ");
+        jPanel2.add(jLabelESTLogo, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 220, 320, 230));
+
+        jTabbedPane1.addTab("Estatísticas", jPanel2);
+
+        getContentPane().add(jTabbedPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 829, 534));
+
+        pack();
+    }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
+        
+        int indexSelecionado = jComboBox5.getSelectedIndex();
+        
+        AutocarroCas.setVisible(false);
+        AutocarroCasLis.setVisible(false);
+        AutocarroLis.setVisible(false);
+        AutocarroLisCoi.setVisible(false);
+        AutocarroCoi.setVisible(false);
+        AutocarroCoiPor.setVisible(false);
+        AutocarroPor.setVisible(false);
+        AutocarroPorBra.setVisible(false);
+        AutocarroBra.setVisible(false);
+        
+        //jButtonPNG.doClick();
+        
+        if (indexSelecionado != 0) {
+            MapZoomCasLis.setVisible(false);
+            MapZoomPorBra.setVisible(false);
+            indexSelecionado -= 1;
+            
+            int coordsAtuais = listagemViagens.get(indexSelecionado).getCoords();
+
+            //int[] coords = listagemViagens.get(indexSelecionado).getPosicao();
+            System.out.println(coordsAtuais);
+            if (listagemViagens.get(indexSelecionado).getSentido() == false) {
+                if (coordsAtuais <= 25) {
+                    MapZoomCasLis.setVisible(true);
+                    if (coordsAtuais <= 5)
+                        AutocarroCas.setVisible(true);
+                    else if (coordsAtuais >= 20)
+                        AutocarroLis.setVisible(true);
+                    else
+                        AutocarroCasLis.setVisible(true);
+                } else if (coordsAtuais >= 75) {
+                    MapZoomPorBra.setVisible(true);
+                    if (coordsAtuais <= 80)
+                        AutocarroPor.setVisible(true);
+                    else if (coordsAtuais >= 95)
+                        AutocarroBra.setVisible(true);
+                    else
+                        AutocarroPorBra.setVisible(true);
+                } else{
+                if (coordsAtuais>25 && coordsAtuais<45)
+                    AutocarroLisCoi.setVisible(true);
+                else if (coordsAtuais>55 && coordsAtuais<75)
+                    AutocarroCoiPor.setVisible(true);
+                else
+                    AutocarroCoi.setVisible(true);
+            }} else {
+                if (coordsAtuais <= 25) {
+                    MapZoomPorBra.setVisible(true);
+                    if (coordsAtuais <= 5)
+                        AutocarroBra.setVisible(true);
+                    else if (coordsAtuais >= 20)
+                        AutocarroPor.setVisible(true);
+                    else
+                        AutocarroPorBra.setVisible(true);
+                } else if (coordsAtuais >= 75) {
+                    MapZoomCasLis.setVisible(true);
+                    if (coordsAtuais <= 80)
+                        AutocarroLis.setVisible(true);
+                    else if (coordsAtuais >= 95)
+                        AutocarroCas.setVisible(true);
+                    else
+                        AutocarroCasLis.setVisible(true);
+                }else{
+                if (coordsAtuais>25 && coordsAtuais<45)
+                    AutocarroCoiPor.setVisible(true);
+                else if (coordsAtuais>55 && coordsAtuais<75)
+                    AutocarroLisCoi.setVisible(true);
+                else
+                    AutocarroCoi.setVisible(true);
+            }}
+            
+            
+
+            //Autocarro.setLocation(coords[0], coords[1]);
+            
+
+            
+            
+            
+            
+            
+            
+            
+            
+            String emViagem = listagemViagens.get(indexSelecionado).getEmViagem() ? "Em Viagem" : "Parado";
+            String avariado = listagemViagens.get(indexSelecionado).getAvaria() ? "Avariado" : "Boas Condições";
+            String sentido = listagemViagens.get(indexSelecionado).getEmViagem() ? "Norte - Sul" : "Sul - Norte";
+
+            //jLabelNomeBus.setText("");
+            jLabelEstado.setText(emViagem);
+            jLabelSentido.setText(sentido);
+            jLabelOrigem.setText(listagemViagens.get(indexSelecionado).getOrigem().toString());
+            jLabelDestino.setText(listagemViagens.get(indexSelecionado).getDestino().toString());
+            jLabelTempoEsperado.setText(listagemViagens.get(indexSelecionado).getTempoEstimado());
+            jLabelNrPessoas.setText(Integer.toString(listagemViagens.get(indexSelecionado).getAtualPessoas()));
+            jLabelNrTotalPess.setText(Integer.toString(listagemViagens.get(indexSelecionado).getTotalPessoas()));
+            jLabelCondicao.setText(avariado);
+            jLabelNomeMotorista.setText(listagemViagens.get(indexSelecionado).getNomeMotorista());
+            jLabelNomeBus.setText("Autocarro\t ID: "+listagemViagens.get(indexSelecionado).getAutocarro()+"\t Tipo: "+listagemViagens.get(indexSelecionado).autocarro.getTipoAutocarro());
+        
+            
+            
+        
+        }
+    
+    }//GEN-LAST:event_jButton3ActionPerformed
+
+    private void jComboBox5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox5ActionPerformed
+        
+        
+    }//GEN-LAST:event_jComboBox5ActionPerformed
+
+    private void jTabbedPane1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTabbedPane1FocusGained
+        
+        
+    }//GEN-LAST:event_jTabbedPane1FocusGained
+
+    private void jPanel1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jPanel1FocusGained
+                                            
+
+    }//GEN-LAST:event_jPanel1FocusGained
+
+    private void jTable1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTable1FocusGained
+        
+       
+        
+    }//GEN-LAST:event_jTable1FocusGained
+
+    private void jScrollPane1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jScrollPane1FocusGained
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jScrollPane1FocusGained
+
+    private void RefreshActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_RefreshActionPerformed
+        
+        
+        
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        
+        
+         
+            int numViagens = listagemViagens.size();
+            int currRowCount = jTable1.getRowCount();
+            
+            /*
+            if(currRowCount < numViagens){
+                int rowDif = numViagens - currRowCount;
+                int totalRows = 
+                jTable1.addr
+                for(int i = rowDif)
+            }
+            else if(currRowCount > numViagens){
+               
+            }
+            */
+            int lineNumber = 0;
+            for(int i = 0; i < listagemViagens.size(); i++){
+                String[] infoViagem = new String[7];
+                infoViagem[0] = listagemViagens.get(i).getAutocarro();
+                infoViagem[1] = listagemViagens.get(i).getObjAutocarro().getTipoAutocarro();
+                infoViagem[2] = listagemViagens.get(i).getOrigem();
+                infoViagem[3] = listagemViagens.get(i).getDestino();
+                infoViagem[4] = listagemViagens.get(i).getCidade(listagemViagens.get(i).getProxCidade(), listagemViagens.get(i).getSentido());
+                //infoViagem[4] = listagemViagens.get(i).getEmViagem();
+                infoViagem[5] = (listagemViagens.get(i).getEstadoAtual());
+                infoViagem[6] = (listagemViagens.get(i).getTempoEstimado());
+                
+                
+                    if(model.getRowCount()> 0){
+                        for(int q = 0; q < model.getRowCount();q++ ){
+                           
+                           if(model.getValueAt(q, 0).equals(infoViagem[0])) {
+                               model.removeRow(q);
+                           }
+                        }
+                    }
+                    model.addRow(new Object[]{infoViagem[0],infoViagem[1],infoViagem[2] ,
+                                              infoViagem[3], infoViagem[4], infoViagem[5], infoViagem[6]});  
+                    //jTable1.setValueAt(infoViagem[j], i, j);
+                    
+               // }
+            }
+            try {
+                Thread.sleep(1000);
+            }
+            catch(InterruptedException iE){
+                iE.printStackTrace();
+            }
+        
+    }//GEN-LAST:event_RefreshActionPerformed
+
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
+        
+        int indexSelecionado = jComboBox5.getSelectedIndex();
+        
+        if (indexSelecionado != 0) {
+            indexSelecionado -= 1;
+            
+            if (listagemViagens.get(indexSelecionado).getParagemForcada() == true){
+                listagemViagens.get(indexSelecionado).setParagemForcada(false);
+                listagemViagens.get(indexSelecionado).setEmViagem(true);
+                jButton4.setText("Parar Viagem");
+                jButton6.setVisible(false);
+                jComboBox5.setEnabled(true);
+                jButton3.setEnabled(true);
+            }
+            else{
+                listagemViagens.get(indexSelecionado).setParagemForcada(true);
+                jButton4.setText("Resumir Viagem");
+                listagemViagens.get(indexSelecionado).setEmViagem(false);
+                jButton6.setVisible(true);
+                jComboBox5.setEnabled(false);
+                jButton3.setEnabled(false);
+            }
+            
+        }
+        
+       
+        
+    }//GEN-LAST:event_jButton4ActionPerformed
+
+    private void jPanel2MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jPanel2MouseEntered
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jPanel2MouseEntered
+
+    private void jPanel2FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jPanel2FocusGained
+        
+        
+        
+        
+        
+        
+    }//GEN-LAST:event_jPanel2FocusGained
+
+    private void jTabbedPane1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jTabbedPane1MouseClicked
+        jLabelESTNrBus.setText(Integer.toString(listagemAutocarros.size()));
+        int conv=0, mini=0, expr=0, longd=0;
+        String tipoBus;
+        for (int i = 0; i < listagemAutocarros.size(); i++){
+            
+            tipoBus=listagemViagens.get(i).getObjAutocarro().getTipoAutocarro();
+            switch (tipoBus){
+                case "Convencional":conv +=1;
+                    break;
+                case "MiniBus":mini +=1;
+                    break;
+                case "Expresso":expr +=1;
+                    break;
+                case "LongDrive":longd +=1;
+                    break;
+            }
+        }
+        jLabelESTNrConv.setText(Integer.toString(conv));
+        jLabelESTNrMini.setText(Integer.toString(mini));
+        jLabelESTNrExpresso.setText(Integer.toString(expr));
+        jLabelESTNrLong.setText(Integer.toString(longd));
+        jLabelESTNrTotalAvarias.setText(Integer.toString(listagemViagens.get(0).getTotalAvaria()));
+        jLabelESTPassagT.setText(Integer.toString(listagemViagens.get(0).getTotalPessoas()));
+        int media = (51*2 + 21*2 + 59*2 + 69*2) /2;
+        jLabelESTPassagEsp.setText(Integer.toString(media));
+        int lucro = listagemViagens.get(0).getLucro();
+        jLabelESTLucro.setText(Integer.toString(lucro));
+        jLabelESTNrMotor.setText(Integer.toString(listagemMotoristas.get(0).getCountUsados()));
+        
+    }//GEN-LAST:event_jTabbedPane1MouseClicked
+
+    private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
+        jPanel4.setVisible(false);
+        
+        int x = jCBMotorista.getItemCount()-1;
+            for (int i=x; i>0; i--){
+                jCBMotorista.removeItemAt(i);
+            }
+        jLabelP4MotoristaAtual.setText("--");
+        jLabelP4MotoristaNovo.setText("--");
+    }//GEN-LAST:event_jButton5ActionPerformed
+
+    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
+    
+    int indexSelecionado = jComboBox5.getSelectedIndex();    
+        
+        if (indexSelecionado != 0) {
+            indexSelecionado -= 1;
+            jPanel4.setVisible(true);
+            int indexCB5 = indexSelecionado;
+            jLabelP4MotoristaAtual.setText(listagemViagens.get(indexSelecionado).getNomeMotorista());
+           
+            for (int i = 0; i < listagemMotoristas.size(); i++) {
+
+                if (listagemMotoristas.get(i).getEstado() == false) {
+                    jCBMotorista.addItem(listagemMotoristas.get(i).getNome());
+                }
+
+            }
+
+        }
+       
+       
+    }//GEN-LAST:event_jButton6ActionPerformed
+
+    private void jButton7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton7ActionPerformed
+        
+        if (jCBMotorista.getSelectedIndex()!=0) {
+        
+            for (int i=0; i<listagemMotoristas.size();i++){
+                    
+                if(listagemMotoristas.get(i).getNome() == jLabelP4MotoristaAtual.getText())
+                    {   
+                        listagemMotoristas.get(i).setEstado(false);}
+                if(listagemMotoristas.get(i).getNome() == jLabelP4MotoristaNovo.getText())
+                    {listagemMotoristas.get(i).setEstado(true);}
+            }
+            
+            listagemViagens.get(jComboBox5.getSelectedIndex()-1).setNomeMotorista(jCBMotorista.getSelectedItem().toString());
+            
+            
+            jPanel4.setVisible(false);
+            int x = jCBMotorista.getItemCount()-1;
+            
+            for (int i=x; i>0; i--){
+                
+                jCBMotorista.removeItemAt(i);
+            }
+            jLabelP4MotoristaAtual.setText("--");
+            jLabelP4MotoristaNovo.setText("--");
+            
+            jButton3.doClick();
+        }
+        
+        
+    }//GEN-LAST:event_jButton7ActionPerformed
+
+    private void jCBMotoristaMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jCBMotoristaMouseClicked
+        
+        
+    }//GEN-LAST:event_jCBMotoristaMouseClicked
+
+    private void jCBMotoristaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jCBMotoristaActionPerformed
+        if (jCBMotorista.getSelectedIndex()!=0){
+            jLabelP4MotoristaNovo.setText(jCBMotorista.getSelectedItem().toString());
+        }
+    }//GEN-LAST:event_jCBMotoristaActionPerformed
+
+    private void jComboBox5MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jComboBox5MouseClicked
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jComboBox5MouseClicked
+
+    private void jPanel3FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jPanel3FocusGained
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jPanel3FocusGained
+
+    private void formFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_formFocusGained
+        // TODO add your handling code here:
+    }//GEN-LAST:event_formFocusGained
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String args[]) {
+        /* Set the Nimbus look and feel */
+        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         */
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(GUI1_beta.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (InstantiationException ex) {
+            java.util.logging.Logger.getLogger(GUI1_beta.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (IllegalAccessException ex) {
+            java.util.logging.Logger.getLogger(GUI1_beta.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(GUI1_beta.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+        //</editor-fold>
+        //</editor-fold>
+
+        /* Create and display the form */
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                new GUI1_beta().setVisible(true);
+            }
+        });
+    }
+
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JLabel AutocarroBra;
+    private javax.swing.JLabel AutocarroCas;
+    private javax.swing.JLabel AutocarroCasLis;
+    private javax.swing.JLabel AutocarroCoi;
+    private javax.swing.JLabel AutocarroCoiPor;
+    private javax.swing.JLabel AutocarroLis;
+    private javax.swing.JLabel AutocarroLisCoi;
+    private javax.swing.JLabel AutocarroPor;
+    private javax.swing.JLabel AutocarroPorBra;
+    private javax.swing.JLabel MapZoomCasLis;
+    private javax.swing.JLabel MapZoomPorBra;
+    private javax.swing.JLabel Mapa;
+    private javax.swing.JButton Refresh;
+    private javax.swing.JButton jButton3;
+    private javax.swing.JButton jButton4;
+    private javax.swing.JButton jButton5;
+    private javax.swing.JButton jButton6;
+    private javax.swing.JButton jButton7;
+    private javax.swing.JComboBox<String> jCBMotorista;
+    private javax.swing.JComboBox<String> jComboBox5;
+    private javax.swing.JLabel jLabel10;
+    private javax.swing.JLabel jLabel11;
+    private javax.swing.JLabel jLabel12;
+    private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel14;
+    private javax.swing.JLabel jLabel15;
+    private javax.swing.JLabel jLabel16;
+    private javax.swing.JLabel jLabel17;
+    private javax.swing.JLabel jLabel18;
+    private javax.swing.JLabel jLabel20;
+    private javax.swing.JLabel jLabel21;
+    private javax.swing.JLabel jLabel22;
+    private javax.swing.JLabel jLabel23;
+    private javax.swing.JLabel jLabel24;
+    private javax.swing.JLabel jLabel25;
+    private javax.swing.JLabel jLabel26;
+    private javax.swing.JLabel jLabel28;
+    private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel9;
+    private javax.swing.JLabel jLabelCondicao;
+    private javax.swing.JLabel jLabelDestino;
+    private javax.swing.JLabel jLabelDestino1;
+    private javax.swing.JLabel jLabelDestino2;
+    private javax.swing.JLabel jLabelDestino3;
+    private javax.swing.JLabel jLabelDestino4;
+    private javax.swing.JLabel jLabelESTLogo;
+    private javax.swing.JLabel jLabelESTLucro;
+    private javax.swing.JLabel jLabelESTNrBus;
+    private javax.swing.JLabel jLabelESTNrConv;
+    private javax.swing.JLabel jLabelESTNrExpresso;
+    private javax.swing.JLabel jLabelESTNrLong;
+    private javax.swing.JLabel jLabelESTNrMini;
+    private javax.swing.JLabel jLabelESTNrMotor;
+    private javax.swing.JLabel jLabelESTNrTotalAvarias;
+    private javax.swing.JLabel jLabelESTPassagEsp;
+    private javax.swing.JLabel jLabelESTPassagT;
+    private javax.swing.JLabel jLabelEstado;
+    private javax.swing.JLabel jLabelNomeBus;
+    private javax.swing.JLabel jLabelNomeBus1;
+    private javax.swing.JLabel jLabelNomeBus2;
+    private javax.swing.JLabel jLabelNomeBus3;
+    private javax.swing.JLabel jLabelNomeMotorista;
+    private javax.swing.JLabel jLabelNrPessoas;
+    private javax.swing.JLabel jLabelNrTotalPess;
+    private javax.swing.JLabel jLabelOrigem;
+    private javax.swing.JLabel jLabelP4MotoristaAtual;
+    private javax.swing.JLabel jLabelP4MotoristaNovo;
+    private javax.swing.JLabel jLabelSentido;
+    private javax.swing.JLabel jLabelTempoEsperado;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JSeparator jSeparator6;
+    private javax.swing.JSeparator jSeparator7;
+    private javax.swing.JSeparator jSeparator8;
+    private javax.swing.JSeparator jSeparator9;
+    private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JTable jTable1;
+    // End of variables declaration//GEN-END:variables
+
+
+ class RemindTask extends TimerTask {
+    public void run() {
+    
+        
+        Refresh.doClick();
+        
+    
+    }}
+ 
+ class avariaRefresh extends TimerTask {
+        public void run() {
+
+            for (int i = 0; i < listagemViagens.size(); i++) {
+                if (listagemViagens.get(i).getEmViagem() == true && listagemViagens.get(i).getAvaria() == false) {
+                    if (avaria.getArray(i) == 1) {
+                        listagemViagens.get(i).setAvaria(true);
+                        listagemViagens.get(i).setEmViagem(false);
+                    }
+
+                }
+            }
+
+        }
+
+    }
+ 
+ 
+}
+
+    
+
