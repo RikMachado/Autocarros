@@ -1,0 +1,131 @@
+
+package projeto.pp;
+
+public class Motorista{
+    
+    // <editor-fold defaultstate="collapsed" desc="Variaveis.">
+    private int id;
+    private String nome;
+    private boolean estado;
+    private int minutosFeitos;
+    private static int countMotoristasUsados = 0;
+    // </editor-fold>
+    
+    
+    // <editor-fold defaultstate="collapsed" desc="Constructor.">
+    /**
+     *
+     * Constructor.
+     * <br />
+     * Utilizado para criar um objecto Motorista;
+     * 
+     *
+     * @param nome - Nome a ser atribuido ao motorista;
+     * @param id - id do motorista;
+     * @return Motorista - objecto Motorista;
+     * @since version 1.00
+     */
+    public Motorista(String nome, int id){
+        this.nome = nome;
+        this.id = id;
+    }
+    // </editor-fold>
+    
+    
+    // <editor-fold defaultstate="collapsed" desc="setEstado.">
+    /**
+     *
+     * setEstado.
+     * <br />
+     * Utilizado para definir se o motorista se encontra a trabalhar ou não;
+     * 
+     * @param estado - boolean a ser atribuido;
+     * @since version 1.00
+     */
+    public void setEstado(boolean estado){
+        if (estado==true)
+            countMotoristasUsados +=1;
+        
+        this.estado = estado;
+    }
+    // </editor-fold>
+   
+    // <editor-fold defaultstate="collapsed" desc="setNome.">
+    /**
+     *
+     * setNome.
+     * <br />
+     * Utilizado para atribuir ou modificar o nome de um motorista;
+     * 
+     *
+     * @param nome - Nome a ser atribuido ao motorista;
+     * @since version 1.00
+     */
+    public void setNome(String nome){
+        this.nome=nome;
+    }
+    // </editor-fold>
+    
+    // <editor-fold defaultstate="collapsed" desc="getEstado.">
+    /**
+     *
+     * getEstado.
+     * <br />
+     * Utilizado para dar return do estado do motorista;
+     * 
+     * @return boolean - estado do motorista;
+     * @since version 1.00
+     */
+    public boolean getEstado(){
+        return this.estado;
+    }
+    // </editor-fold>
+    
+    
+    // <editor-fold defaultstate="collapsed" desc="getNome.">
+    /**
+     *
+     * getNome.
+     * <br />
+     * Utilizado para dar return do nome do motorista;
+     * 
+     * @return String - nome do motorista;
+     * @since version 1.00
+     */
+    public String getNome(){
+        return this.nome;
+    }
+    // </editor-fold>
+    
+    // <editor-fold defaultstate="collapsed" desc="getCountUsados.">
+    /**
+     *
+     * getCountUsados.
+     * <br />
+     * Utilizado para dar return do numero de vezes que o motorista foi utilizado;
+     * 
+     * @return int - numero;
+     * @since version 1.00
+     */
+    public int getCountUsados(){
+        
+        return countMotoristasUsados;
+    }
+    // </editor-fold>
+    
+    
+    // <editor-fold defaultstate="collapsed" desc="getI.">
+    /**
+     *
+     * getI.
+     * <br />
+     * Utilizado para dar return do id do motorista;
+     * 
+     * @return int - id;
+     * @since version 1.00
+     */
+    public int getID(){
+        return this.id;
+    }
+    // </editor-fold>
+}
