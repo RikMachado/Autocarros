@@ -1,50 +1,128 @@
-package autocarro;
-import java.util.*;
-import autocarro.Viagem.*;
 
+package projeto.pp;
+import java.util.*;
+import projeto.pp.Viagens.*;
 
 public class Avaria extends Thread{
     
-    int maxNum; //num que determina se ta avariado ou nao
-    int percentFalha;
+    // <editor-fold defaultstate="collapsed" desc="Variaveis.">
+    int maxNum;
+    double percentFalha;
     int minFalha = 0;
-    int maxFalha;
+    double maxFalha;
+    ArrayList<Viagens> listaViagem;
     Random rand = new Random();
+    int[] viagensMirr;
+    int arrSize;
+    // </editor-fold>
     
-    public Avaria(int maxNum, int percentFalha){
+    // <editor-fold defaultstate="collapsed" desc="Constructor.">
+    /**
+     *
+     * Constructor.
+     * <br />
+     * Utilizado para criar um objecto avaria;
+     * 
+     *
+     * @param maxNum - Numero maximo para o range de randomização;
+     * @param percentFalha - Percentagem representante da probabilidade de falha;
+     * @param listaViagem - lista de objectos viagem que será iterada para obter um autocarro;
+     * @return Avaria - objecto Avaria;
+     * @since version 1.00
+     */
+    public Avaria(int maxNum, int percentFalha, ArrayList<Viagens> listaViagem ){
         
         this.maxNum = maxNum;        
         this.percentFalha = percentFalha;
-        this.maxFalha = calcFalha();
-           
-    }
-    
-    private int calcFalha(){
+        this.maxFalha = this.maxNum * (this.percentFalha / 100);
+        this.listaViagem = listaViagem;
         
-        return this.maxNum * (this.percentFalha / 100);
-    } 
+        this.arrSize = listaViagem.size();
+        this.viagensMirr = new int[this.arrSize];
+        
+    }
+    // </editor-fold>
+      
     
+    // <editor-fold defaultstate="collapsed" desc="randomizer.">
+    /**
+     *
+     * randomizer.
+     * <br />
+     * Utilizado para criar um numero randomizado entre 0 e num;
+     * 
+     *
+     * @param num - Numero maximo;
+     * @return int - numero obtido;
+     * @since version 1.00
+     */
     private int randomizer(int num){
         
         return rand.nextInt(num); 
     }
-         
-    public void run(ArrayList<Viagem> listaViagem){
+    // </editor-fold>
+    
+    
+    // <editor-fold defaultstate="collapsed" desc="getArray.">
+    /**
+     *
+     * getArray.
+     * <br />
+     * Utilizado para obter um autocarro;
+     * 
+     *
+     * @param valor - index;
+     * @return int - id obtido;
+     * @since version 1.00
+     */
+    public int getArray(int valor){
         
+        return viagensMirr[valor];
+    }
+    // </editor-fold>
+    
+    // <editor-fold defaultstate="collapsed" desc="resetArr.">
+    /**
+     *
+     * resetArr
+     * <br />
+     * Utilizado para limpar por completo o array viagensMirr
+     * 
+     *
+     * @since version 1.00
+     */
+    private void resetArr(){
+    
+        for(int i=0; i<viagensMirr.length; i++){
+        
+            viagensMirr[i]=0;
+        }
+    }
+    // </editor-fold>
+    
+    // <editor-fold defaultstate="collapsed" desc="run.">
+    /**
+     *
+     * run.
+     * <br />
+     * Metodo run que irá dar origem a thread Avaria, o qual tem o objectivo
+     * de gerar uma varia para qualquer autocarro, dado a probabilidade definida;
+     * 
+     * @since version 1.00
+     */
+    public void run(){
+        //int[] linhas = {0,0,0,0};
         while(true){
-            
+            resetArr();
             if(randomizer(maxNum) < maxFalha){
                 
-                int index = randomizer(listaViagem.size());
-                
-                if( listaViagem.get(index).getAvaria() != true ){
-                    
-                    listaViagem.get(index).setAvaria(true);
+                int index = randomizer(this.listaViagem.size());
+                if( this.listaViagem.get(index).getAvaria() != true ){
+                    viagensMirr[index] = 1;
                 }
-                
             } 
             try{
-            Thread.sleep(50);    
+                Thread.sleep(3000); 
             }
             catch(InterruptedException iE)
             {
@@ -52,4 +130,5 @@ public class Avaria extends Thread{
             }
         }
     }    
+    // </editor-fold>
 }
