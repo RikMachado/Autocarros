@@ -1,3 +1,4 @@
+
 package projeto.pp;
 
 import java.util.*;
@@ -68,7 +69,7 @@ public class Viaturas {
 
     public int getVelocidade() {
         
-        double tempCalc = ((this.velocidadeBaseDouble / this.velocidadeDouble) * 1000) + 400;
+        double tempCalc = ((this.velocidadeBaseDouble / this.velocidadeDouble) * 1000) + 400 + 1000;
         int returnValue = (int) tempCalc;
 
         return returnValue;
@@ -99,14 +100,12 @@ class Convencional extends Viaturas {
         this.velocidade = 80;
         this.velocidadeDouble = this.velocidade;
         
-        
         try {
             this.pessoasInicial = pessoasInicial;
             excPessMax(this.pessoasInicial,this.num_max_pessoas);
         } catch (testarPessoas tP) {
             tP.printStackTrace();
         }
-
     }
 
 }
@@ -120,14 +119,14 @@ class MiniBus extends Viaturas {
         this.tipoViatura = "MiniBus";
         this.velocidade = 120;
         this.velocidadeDouble = this.velocidade;
-
+        
         try {
             this.pessoasInicial = pessoasInicial;
             excPessMax(this.pessoasInicial,this.num_max_pessoas);
         } catch (testarPessoas tP) {
             tP.printStackTrace();
         }
-
+        
     }
 
 }
@@ -141,7 +140,6 @@ class LongDrive extends Viaturas {
         this.tipoViatura = "LongDrive";
         this.velocidade = 50;
         this.velocidadeDouble = this.velocidade;
-        
         
         try {
             this.pessoasInicial = pessoasInicial;
@@ -162,14 +160,12 @@ class Expresso extends Viaturas {
         this.velocidade = 100;
         this.velocidadeDouble = this.velocidade;
         
-               
         try {
             this.pessoasInicial = pessoasInicial;
             excPessMax(this.pessoasInicial,this.num_max_pessoas);
         } catch (testarPessoas tP) {
             tP.printStackTrace();
         }
-        
     }
 
 }
