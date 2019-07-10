@@ -1,4 +1,4 @@
-# Autocarros
-Autocarros a andar por portugal
+#  Intercity bus service -  Portugal
 
-Add things here pls ty c: c:
+- Java based application using multi-threading to simulate an intercity bus service
+- Netbeans based graphical interface
